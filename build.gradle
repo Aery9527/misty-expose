@@ -1,0 +1,30 @@
+buildscript {
+    dependencies {
+        classpath files(
+                "out/production/classes",
+                "for-gradle-init"
+        )
+    }
+}
+
+plugins {
+    id 'java-library'
+    id 'idea'
+}
+
+import org.misty.expose.core.MistyExpose
+import org.misty.expose.MistyExposer
+
+group 'org.misty'
+MistyExpose mistyExpose = new MistyExposer() as MistyExpose
+archivesBaseName = mistyExpose.getName()
+version = mistyExpose.getVersion()
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: '2.6.6'
+    testImplementation group: 'org.objenesis', name: 'objenesis', version: '3.2'
+}
