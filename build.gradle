@@ -20,6 +20,13 @@ MistyExpose mistyExpose = new MistyExposer() as MistyExpose
 archivesBaseName = mistyExpose.getName()
 version = mistyExpose.getVersion()
 
+ext {
+    VERSION_JAVA = '1.8'
+}
+
+sourceCompatibility = project.VERSION_JAVA
+targetCompatibility = project.VERSION_JAVA
+
 repositories {
     mavenCentral()
 }
