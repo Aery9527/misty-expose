@@ -4,6 +4,15 @@ import java.util.Objects;
 
 public class MistyExpose {
 
+    static {
+        // trigger MistyExpose name and version pattern check
+        MistyExposeDetector.findBySPI();
+    }
+
+    public static final String NAME_REGEX_PATTERN = "[a-zA-Z]" + "[\\w-\\.$]*" + "[a-zA-Z0-9]";
+
+    public static final String VERSION_REGEX_PATTERN = "[a-zA-Z0-9]" + "[\\w-\\.$]*" + "[a-zA-Z0-9]";
+
     public static final String FULL_NAME_FORMAT = "MistyExpose(%s)(%s)";
 
     public static final String FULL_NAME_WITH_CLASS_FORMAT = FULL_NAME_FORMAT + "(%s)";
@@ -19,26 +28,44 @@ public class MistyExpose {
     private final String fullNameWithClass;
 
     public MistyExpose(String name, String version) {
-        this(name, version, "");
+        this(name, version, "", null);
+    }
+
+    public MistyExpose(String name, String version, Class<?> type) {
+        this(name, version, "", type);
     }
 
     public MistyExpose(String name, String version, String description) {
-        check(name, "name", false);
-        check(version, "version", false);
-        check(description, "description", true);
+        this(name, version, description, null);
+    }
+
+    public MistyExpose(String name, String version, String description, Class<?> type) {
+        check(name, "name", false, NAME_REGEX_PATTERN);
+        check(version, "version", false, VERSION_REGEX_PATTERN);
+        check(description, "description", true, "");
+
+        String typeQualifiedName = type == null ? getClass().getName() : type.getName();
 
         this.name = name;
         this.version = version;
         this.fullName = String.format(FULL_NAME_FORMAT, name, version);
-        this.fullNameWithClass = String.format(FULL_NAME_WITH_CLASS_FORMAT, name, version, getClass().getName());
+        this.fullNameWithClass = String.format(FULL_NAME_WITH_CLASS_FORMAT, name, version, typeQualifiedName);
         this.description = description;
     }
 
-    private void check(String target, String term, boolean allowEmpty) {
+    private void check(String target, String term, boolean allowEmpty, String allowFormat) {
         if (target == null) {
             throw new IllegalArgumentException(term + " can't be null.");
         } else if (target.isEmpty() && !allowEmpty) {
             throw new IllegalArgumentException(term + " can't be empty.");
+        }
+
+        if (allowFormat.isEmpty()) {
+            return;
+        }
+
+        if (!target.matches(allowFormat)) {
+            throw new IllegalArgumentException(term + "(" + target + ") must match regex pattern \"" + allowFormat + "\"");
         }
     }
 

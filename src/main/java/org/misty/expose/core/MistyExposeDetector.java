@@ -57,7 +57,7 @@ public class MistyExposeDetector {
             currentThread.setContextClassLoader(originalContextClassLoader);
         }
 
-        return new MistyExpose(name, version, description);
+        return new MistyExpose(name, version, description, mistyExposer.getClass());
     }
 
 }
