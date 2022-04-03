@@ -2,9 +2,8 @@ package org.misty.expose.core;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.ServiceLoader;
+import java.util.*;
+import java.util.function.Consumer;
 
 public class MistyExposeDetector {
 
@@ -29,6 +28,46 @@ public class MistyExposeDetector {
 
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public static List<MistyExpose> findBySPIAndCheckDuplicate() {
+        return findBySPIAndCheckDuplicate(MistyExposeDetector::thrownDuplicateException);
+    }
+
+    public static List<MistyExpose> findBySPIAndCheckDuplicate(Consumer<Map<String, List<MistyExpose>>> duplicateConsumer) {
+        List<MistyExpose> mistyExposeList = findBySPI();
+        checkDuplicate(mistyExposeList, duplicateConsumer);
+        return mistyExposeList;
+    }
+
+    public static List<MistyExpose> findBySPIAndCheckDuplicate(ClassLoader classLoader) {
+        return findBySPIAndCheckDuplicate(classLoader, MistyExposeDetector::thrownDuplicateException);
+    }
+
+    public static List<MistyExpose> findBySPIAndCheckDuplicate(
+            ClassLoader classLoader,
+            Consumer<Map<String, List<MistyExpose>>> duplicateConsumer) {
+        List<MistyExpose> mistyExposeList = findBySPI(classLoader);
+        checkDuplicate(mistyExposeList, duplicateConsumer);
+        return mistyExposeList;
+    }
+
+    public static void checkDuplicate(List<MistyExpose> mistyExposeList, Consumer<Map<String, List<MistyExpose>>> duplicateConsumer) {
+        Map<String, List<MistyExpose>> duplicateMap = mistyExposeList.stream()
+                .map(mistyExpose -> Collections.singletonMap(mistyExpose.getName(), mistyExpose))
+                .reduce(new HashMap<String, List<MistyExpose>>(), (m1, m2) -> {
+                    m2.forEach((key, value) -> m1.computeIfAbsent(key, name -> new ArrayList<>()).add(value));
+                    return m1;
+                }, (m1, m2) -> null).entrySet().stream()
+                .filter(entry -> entry.getValue().size() > 1)
+                .reduce(new HashMap<>(), (map, entry) -> {
+                    map.put(entry.getKey(), entry.getValue());
+                    return map;
+                }, (l1, l2) -> null);
+
+        if (!duplicateMap.isEmpty()) {
+            duplicateConsumer.accept(duplicateMap);
         }
     }
 
@@ -58,6 +97,10 @@ public class MistyExposeDetector {
         }
 
         return new MistyExpose(name, version, description, mistyExposer.getClass());
+    }
+
+    private static void thrownDuplicateException(Map<String, List<MistyExpose>> duplicateMap) {
+        throw new IllegalArgumentException("There are duplicate name of MistyExpose following " + duplicateMap);
     }
 
 }

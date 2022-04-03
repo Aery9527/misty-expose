@@ -3,6 +3,8 @@ package org.misty.expose.core;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.misty.expose.MistyExposer;
+import org.misty.expose.MistyExposerTest2;
+import org.misty.expose._tool.AssertException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,15 +20,34 @@ class MistyExposeDetectorTest {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Test
-    void findBySPI() {
-        List<MistyExpose> list = MistyExposeDetector.findBySPI();
+    void findBySPIAndCheckDuplicate() {
+        List<MistyExpose> list = MistyExposeDetector.findBySPIAndCheckDuplicate();
         print(list);
 
-        Assertions.assertThat(list).contains(new MistyExposer());
+        Assertions.assertThat(list).contains(new MistyExposer(), new MistyExposerTest2());
     }
 
     @Test
-    void testFindBySPI() throws MalformedURLException {
+    void findBySPI_withClassLoader() throws MalformedURLException {
+        ClassLoader classLoader = buildTestClassLoader();
+        List<MistyExpose> list = MistyExposeDetector.findBySPI(classLoader);
+        print(list);
+
+        Assertions.assertThat(list).contains(
+                new MistyExposer(),
+                new MistyExposerTest2(),
+                new MistyExpose("misty-expose-test", "1.0.0")
+        );
+    }
+
+    @Test
+    void findBySPIAndCheckDuplicate_withClassLoader() throws MalformedURLException {
+        ClassLoader classLoader = buildTestClassLoader();
+        AssertException.print(() -> MistyExposeDetector.findBySPIAndCheckDuplicate(classLoader))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    ClassLoader buildTestClassLoader() throws MalformedURLException {
         String anchor = "misty-expose";
         URLClassLoader systemClassLoader = (URLClassLoader) ClassLoader.getSystemClassLoader();
         URL[] systemUrls = systemClassLoader.getURLs();
@@ -40,14 +61,7 @@ class MistyExposeDetectorTest {
                 "src" + File.separator +
                 "test" + File.separator +
                 "other" + File.separator;
-        URLClassLoader loader = new URLClassLoader(new URL[]{new URL(targetPath)});
-        List<MistyExpose> list = MistyExposeDetector.findBySPI(loader);
-        print(list);
-
-        Assertions.assertThat(list).contains(
-                new MistyExposer(),
-                new MistyExpose("misty-expose-test", "1.0.0")
-        );
+        return new URLClassLoader(new URL[]{new URL(targetPath)});
     }
 
     private void print(List<MistyExpose> list) {
