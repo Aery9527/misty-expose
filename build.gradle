@@ -34,4 +34,11 @@ repositories {
 dependencies {
     testImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: '2.6.6'
     testImplementation group: 'org.objenesis', name: 'objenesis', version: '3.2'
+
+//    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
+}
+
+test {
+    useJUnitPlatform()
 }
