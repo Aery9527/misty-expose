@@ -31,30 +31,30 @@ public class MistyExposeDetector {
         }
     }
 
-    public static List<MistyExpose> findBySPIAndCheckDuplicate() {
-        return findBySPIAndCheckDuplicate(MistyExposeDetector::thrownDuplicateException);
+    public static List<MistyExpose> findBySPIAndCheckRepeated() {
+        return findBySPIAndCheckRepeated(MistyExposeDetector::thrownRepeatedException);
     }
 
-    public static List<MistyExpose> findBySPIAndCheckDuplicate(Consumer<Map<String, List<MistyExpose>>> duplicateConsumer) {
+    public static List<MistyExpose> findBySPIAndCheckRepeated(Consumer<Map<String, List<MistyExpose>>> repeatedConsumer) {
         List<MistyExpose> mistyExposeList = findBySPI();
-        checkDuplicate(mistyExposeList, duplicateConsumer);
+        checkRepeated(mistyExposeList, repeatedConsumer);
         return mistyExposeList;
     }
 
-    public static List<MistyExpose> findBySPIAndCheckDuplicate(ClassLoader classLoader) {
-        return findBySPIAndCheckDuplicate(classLoader, MistyExposeDetector::thrownDuplicateException);
+    public static List<MistyExpose> findBySPIAndCheckRepeated(ClassLoader classLoader) {
+        return findBySPIAndCheckRepeated(classLoader, MistyExposeDetector::thrownRepeatedException);
     }
 
-    public static List<MistyExpose> findBySPIAndCheckDuplicate(
+    public static List<MistyExpose> findBySPIAndCheckRepeated(
             ClassLoader classLoader,
-            Consumer<Map<String, List<MistyExpose>>> duplicateConsumer) {
+            Consumer<Map<String, List<MistyExpose>>> repeatedConsumer) {
         List<MistyExpose> mistyExposeList = findBySPI(classLoader);
-        checkDuplicate(mistyExposeList, duplicateConsumer);
+        checkRepeated(mistyExposeList, repeatedConsumer);
         return mistyExposeList;
     }
 
-    public static void checkDuplicate(List<MistyExpose> mistyExposeList, Consumer<Map<String, List<MistyExpose>>> duplicateConsumer) {
-        Map<String, List<MistyExpose>> duplicateMap = mistyExposeList.stream()
+    public static void checkRepeated(List<MistyExpose> mistyExposeList, Consumer<Map<String, List<MistyExpose>>> repeatedConsumer) {
+        Map<String, List<MistyExpose>> repeatedMap = mistyExposeList.stream()
                 .map(mistyExpose -> Collections.singletonMap(mistyExpose.getName(), mistyExpose))
                 .reduce(new HashMap<String, List<MistyExpose>>(), (m1, m2) -> {
                     m2.forEach((key, value) -> m1.computeIfAbsent(key, name -> new ArrayList<>()).add(value));
@@ -66,8 +66,8 @@ public class MistyExposeDetector {
                     return map;
                 }, (l1, l2) -> null);
 
-        if (!duplicateMap.isEmpty()) {
-            duplicateConsumer.accept(duplicateMap);
+        if (!repeatedMap.isEmpty()) {
+            repeatedConsumer.accept(repeatedMap);
         }
     }
 
@@ -99,8 +99,8 @@ public class MistyExposeDetector {
         return new MistyExpose(name, version, description, mistyExposer.getClass());
     }
 
-    private static void thrownDuplicateException(Map<String, List<MistyExpose>> duplicateMap) {
-        throw new IllegalArgumentException("There are duplicate name of MistyExpose following " + duplicateMap);
+    private static void thrownRepeatedException(Map<String, List<MistyExpose>> repeatedMap) {
+        throw new IllegalArgumentException("There are repeated name of MistyExpose following " + repeatedMap);
     }
 
 }

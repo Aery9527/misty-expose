@@ -21,7 +21,7 @@ class MistyExposeDetectorTest {
 
     @Test
     void findBySPIAndCheckDuplicate() {
-        List<MistyExpose> list = MistyExposeDetector.findBySPIAndCheckDuplicate();
+        List<MistyExpose> list = MistyExposeDetector.findBySPIAndCheckRepeated();
         print(list);
 
         Assertions.assertThat(list).contains(new MistyExposer(), new MistyExposerTest2());
@@ -43,7 +43,7 @@ class MistyExposeDetectorTest {
     @Test
     void findBySPIAndCheckDuplicate_withClassLoader() throws MalformedURLException {
         ClassLoader classLoader = buildTestClassLoader();
-        AssertException.print(() -> MistyExposeDetector.findBySPIAndCheckDuplicate(classLoader))
+        AssertException.print(() -> MistyExposeDetector.findBySPIAndCheckRepeated(classLoader))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
