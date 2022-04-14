@@ -1,0 +1,110 @@
+import java.lang.reflect.Method
+import java.util.function.BiConsumer
+import java.util.function.Consumer
+import java.util.stream.Collectors
+
+final String bannerFormat = "-----[%s]-----"
+final String title = "misty-expose"
+final String banner = String.format(bannerFormat, title)
+final String sourceAnchor = "src" + File.separator + "main" + File.separator + "java"
+
+String exposer = misty.exposer
+String targetName
+String javaHomePath
+String tmpPath
+String exposeSourcePath
+String compileSource
+List<String> commandList = new ArrayList<>()
+
+boolean debug = Boolean.parseBoolean(project.ext.get("misty").debug)
+ext.mistyPrinter = debug ? { line -> System.out.println(line) } : { line -> }
+
+ext.mistyPrepare = { ->
+    String sourceRootPath = System.getProperties().get("user.dir")
+    targetName = sourceRootPath.substring(sourceRootPath.lastIndexOf(File.separator) + 1, sourceRootPath.length())
+
+    javaHomePath = System.getProperties().get("java.home")
+    javaHomePath = javaHomePath.substring(0, javaHomePath.lastIndexOf(File.separator))
+    javaHomePath += File.separator + "bin" + File.separator
+
+    tmpPath = System.getenv().get("TMP") + File.separator + title + File.separator
+    tmpPath += targetName
+    File tmpPathFile = new File(tmpPath)
+    tmpPathFile.deleteOnExit()
+    tmpPathFile.mkdirs()
+
+//    exposeSourcePath = sourceRootPath + File.separator + title + File.separator + sourceAnchor
+    exposeSourcePath = sourceRootPath + File.separator + sourceAnchor
+
+    compileSource = sourceRootPath + File.separator + sourceAnchor + File.separator
+    compileSource += Arrays.stream(exposer.split("\\.")).collect(Collectors.joining(File.separator)) + ".java"
+
+    commandList.add(javaHomePath + "javac")
+    commandList.addAll(Arrays.asList("-d", "\"" + tmpPath + "\""))
+    commandList.addAll(Arrays.asList("-cp", "\"" + exposeSourcePath + "\""))
+    commandList.addAll("\"" + compileSource + "\"")
+
+    mistyPrinter("exposer           : " + exposer)
+    mistyPrinter("targetName        : " + targetName)
+    mistyPrinter("javaHomePath      : " + javaHomePath)
+    mistyPrinter("tmpPath           : " + tmpPath)
+    mistyPrinter("exposeSourcePath  : " + exposeSourcePath)
+    mistyPrinter("compileSource     : " + compileSource)
+    mistyPrinter("command           : " + commandList.stream().collect(Collectors.joining(" ")))
+}
+
+ext.mistyCompile = { ->
+    ProcessBuilder processBuilder = new ProcessBuilder(commandList);
+    Process process = processBuilder.start()
+
+    BiConsumer<InputStream, Consumer<String>> readConsoles = (inputStream, outputer) -> {
+        Thread readThread = new Thread(() -> {
+            InputStreamReader isr = new InputStreamReader(inputStream)
+            BufferedReader br = new BufferedReader(isr)
+            String line
+            while ((line = br.readLine()) != null) {
+                outputer.accept("[COMPILE] " + line)
+            }
+        }, "compile-consoles-reader")
+        readThread.start()
+    }
+
+    readConsoles.accept(process.getInputStream(), System.out::println)
+    readConsoles.accept(process.getErrorStream(), System.err::println)
+    process.waitFor()
+}
+
+String exposerName
+String exposerVersion
+
+ext.mistyRead = { ->
+    URLClassLoader cl = new URLClassLoader(new URL[]{new File(tmpPath).toURI().toURL()})
+    Class<?> targetExposerClass = cl.loadClass(exposer)
+    Class<?> mistyExposeClass = targetExposerClass.getSuperclass()
+
+    Method getNameMethod = mistyExposeClass.getDeclaredMethod("getName")
+    Method getVersionMethod = mistyExposeClass.getDeclaredMethod("getVersion")
+
+    Object exposerInstance = targetExposerClass.newInstance()
+    exposerName = getNameMethod.invoke(exposerInstance)
+    exposerVersion = getVersionMethod.invoke(exposerInstance)
+
+    System.out.println("archivesBaseName  : " + exposerName)
+    System.out.println("version           : " + exposerVersion)
+}
+
+try {
+    System.out.println(banner)
+    mistyPrepare()
+    mistyCompile()
+    mistyRead()
+
+    archivesBaseName = exposerName
+    version = exposerVersion
+
+} catch (Exception e) {
+    e.printStackTrace()
+
+} finally {
+    System.out.println(banner)
+}

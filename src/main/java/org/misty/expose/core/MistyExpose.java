@@ -5,8 +5,7 @@ import java.util.Objects;
 public class MistyExpose {
 
     static {
-        // trigger MistyExpose name and version pattern check
-        MistyExposeDetector.findBySPI();
+        MistyExposeDetector.findBySPI(); // trigger MistyExpose name and version pattern check
     }
 
     public static final String NAME_REGEX_PATTERN = "[a-zA-Z]" + "[\\w-\\.$]*" + "[a-zA-Z0-9]";

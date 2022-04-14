@@ -1,28 +1,18 @@
-buildscript {
-    dependencies {
-        classpath files(
-                "build/classes/java/main",
-                "for-gradle-init"
-        )
-    }
-}
-
 plugins {
     id 'java-library'
     id 'idea'
 }
 
-import org.misty.expose.core.MistyExpose
-import org.misty.expose.MistyExposer
-
-group 'org.misty'
-MistyExpose mistyExpose = new MistyExposer() as MistyExpose
-archivesBaseName = mistyExpose.getName()
-version = mistyExpose.getVersion()
-
 ext {
     VERSION_JAVA = '1.8'
+    misty = [
+        exposer : "org.misty.expose.MistyExposer"
+//        , debug : "true"
+    ]
 }
+
+group 'org.misty'
+apply from: 'misty-expose.gradle'
 
 sourceCompatibility = project.VERSION_JAVA
 targetCompatibility = project.VERSION_JAVA
